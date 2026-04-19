@@ -1,0 +1,8 @@
+SuikaEnv-v0-test-setup:
+  # algo: ppo
+  n_envs: 1
+  n_timesteps: !!float 1e5 # Number of total environment steps to train for
+  policy: 'MlpPolicy'
+  env_kwargs:
+    render_mode: "human"
+    debug: true

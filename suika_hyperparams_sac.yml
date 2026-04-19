@@ -1,9 +1,11 @@
 SuikaEnv-v0:
-  algo: sac
+  # algo: sac
+  progress_bar: true
   n_envs: 4              # Fewer envs to reduce CPU-GPU sync bottleneck
+  n_timesteps: !!float 1e6
   buffer_size: 1000000   # 1M transitions; fits easily in your 5090's VRAM
   batch_size: 512        # High batch size for GPU efficiency
-  learning_rate: 3e-4
+  learning_rate: 0.0003
   tau: 0.005             # Smoothing factor for the target networks
   gamma: 0.99
   train_freq: 1          # Update the model every single step

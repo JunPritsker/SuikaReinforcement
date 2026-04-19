@@ -1,0 +1,14 @@
+SuikaEnv-v0:
+  # algo: ppo
+  n_envs: 16
+  n_steps: 2048          # Collected per env; total batch = 16 * 2048 = 32,768
+  n_timesteps: !!float 1e6 # Number of total environment steps to train for
+  policy: 'MlpPolicy'
+  batch_size: 2048       # Large batch size to saturate the 5090
+  n_epochs: 10           # Reuse the data 10 times for deeper learning
+  learning_rate: 0.0002
+  gamma: 0.999
+  gae_lambda: 0.95
+  ent_coef: 0.01         # Encourages exploration in the placement
+  clip_range: 0.2
+  policy_kwargs: "dict(net_arch=dict(pi=[256, 256], vf=[256, 256]))" # Dense deep neural net
