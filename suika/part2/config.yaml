@@ -6,14 +6,17 @@ screen:
   white: [245, 245, 245]
   score: [195, 140]
 
+# The pad determines the playable area on the screen
+# The height integer actually increases from the top of the screen to the bottom
+# So killy is at the top of the visible screen but is a low value relative to the bottom of the play area
 pad:
   left: 415
-  top: 85
+  top: 85                 # The height that you drop fruit from
   right: 863
   bot: 675
   line_top: 65
   line_bot: 673
-  killy: 170
+  killy: 170              # The height at which you lose the game ONLY IF 2 different fruit collid ABOVE this height
 
 physics:
   density: 0.001
