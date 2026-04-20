@@ -1,0 +1,57 @@
+# The result of this run is in rl_baseline3_zoo/logs/dqn/SuikaEnv_v0_10
+SuikaEnv-v0:
+  # algo: dqn
+  policy: 'MlpPolicy'
+  # --- Hardware Saturation Settings ---
+  n_timesteps: !!float 2e7          # 1 million timesteps for benchmarking
+  n_envs: 48                    # 9800X3D can handle 32+ physics threads easily
+  buffer_size: 1000000          # 1M transitions (DQN needs a large memory)
+  batch_size: 4096              # 5090 needs huge batches to maintain high TFLOPS
+  learning_starts: 100000        # Collect initial data before hitting the GPU
+  train_freq: 4                 # Update every 4 steps
+  gradient_steps: 16             # Do 16 updates per train_freq to keep GPU busy
+  
+  # --- Algorithm Hyperparameters ---
+  learning_rate: !!float 5e-5   # Slightly higher to compensate for huge batch size
+  gamma: 0.99                   
+  exploration_fraction: 0.1     # Explore for the first 10% of training
+  exploration_final_eps: 0.05
+  target_update_interval: 1000  # How often to sync the "target" network
+  tau: 0.005                    # SBX uses Polyak averaging for smoother updates
+  
+  # --- Brain Capacity ---
+  policy_kwargs: "dict(net_arch=[512, 512, 512])"
+
+  env_kwargs:
+    spatial_features: false
+    clustering: false
+    # debug: true
+
+#For testing a bug I hit
+# SuikaEnv-v0:
+#   # algo: dqn
+#   policy: 'MlpPolicy'
+#   # --- Hardware Saturation Settings ---
+#   n_timesteps: !!float 5e5          # 1 million timesteps for benchmarking
+#   n_envs: 512                    # 9800X3D can handle 32+ physics threads easily
+#   buffer_size: 1000000          # 1M transitions (DQN needs a large memory)
+#   batch_size: 32768              # 5090 needs huge batches to maintain high TFLOPS
+#   learning_starts: 10000         # Collect initial data before hitting the GPU
+#   train_freq: 4                 # Update every 4 steps
+#   gradient_steps: 8             # Do 8 updates per train_freq to keep GPU busy
+  
+#   # --- Algorithm Hyperparameters ---
+#   learning_rate: !!float 2e-4   # Slightly higher to compensate for huge batch size
+#   gamma: 0.99                   
+#   exploration_fraction: 0.1     # Explore for the first 10% of training
+#   exploration_final_eps: 0.05
+#   target_update_interval: 1000  # How often to sync the "target" network
+#   tau: 0.005                    # SBX uses Polyak averaging for smoother updates
+  
+#   # --- Brain Capacity ---
+#   policy_kwargs: "dict(net_arch=[512, 512, 512])"
+
+#   env_kwargs:
+#     spatial_features: true
+#     clustering: true
+#     debug: true
