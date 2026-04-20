@@ -29,7 +29,7 @@ class SuikaEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": config.screen.fps}
     
 
-    def __init__(self, render_mode=None, action_type="discrete", discrete_bins=448, max_fruits=100, spatial_features=False, debug=False, clustering=False):
+    def __init__(self, render_mode=None, action_type="discrete", discrete_bins=448, max_fruits=50, spatial_features=False, debug=False, clustering=False):
         self.render_mode = render_mode
         self.action_type = action_type
         self.discrete_bins = discrete_bins
@@ -424,15 +424,15 @@ class SuikaEnv(gym.Env):
         final_score = self.handler.data["score"]
 
         # Scale the reward, might need to disable scaling when training an existing model that wasn't trained with scaling
-        step_reward = (final_score - initial_score)/100
-        # step_reward = final_score - initial_score
+        # step_reward = (final_score - initial_score)/100
+        step_reward = final_score - initial_score
 
         # BASE REWARD: Score + small bonus for surviving
         # scaled BASE reward
         self.debug_print(f"Reward: {reward:.6f}")
         # Was 0.25 before scaling. Then tried 0.025. Now trying 0.0025 to match the /100 scaling
-        reward = step_reward + 0.0025
-        # reward = step_reward + 0.25
+        # reward = step_reward + 0.0025
+        reward = step_reward + 0.25
         self.debug_print(f"Step Reward: {step_reward}")
         self.debug_print(f"Base Reward + Step Reward: {reward}")
 
@@ -470,9 +470,10 @@ class SuikaEnv(gym.Env):
                 self.last_action = action
 
             if self.repeat_count > 3:
-                repeat_penalty = 0.5
+                # repeat_penalty = 0.01 # adjusted for scaling from 1.0
+                repeat_penalty = 1.0
                 self.debug_print(f"Reward: {reward:.6f}")
-                reward -= repeat_penalty # Equivalent of losing 50 score
+                reward -= repeat_penalty
                 self.debug_print(f"Repeat Move Penalty: -{repeat_penalty}")
                 self.debug_print(f"Reward: {reward:.6f}")
 
@@ -481,12 +482,13 @@ class SuikaEnv(gym.Env):
         # Equivalent of being penalized 300 score
         if terminated:
             self.debug_print("----------GAME OVER----------")
-            reward -= 1.0
+            # reward -= 1.0
+            reward -= 100.0
 
         truncated = False
 
         # Don't want to _get_obs() twice but want to use obs values for reward penalty so grabbing it here
-        obs = self._get_obs()
+        # obs = self._get_obs()
 
         # Replicate height_severity from _calculate_spatial_features() using already-computed obs values
         # obs[7] = killy/H, obs[8] = min_y/H. Same formula as line 204, normalized.
@@ -501,7 +503,7 @@ class SuikaEnv(gym.Env):
         # self.debug_print(f"Reward after height penalty: {reward:.6f}")
 
 
-        return obs, reward, terminated, truncated, self._get_info()
+        return self._get_obs(), reward, terminated, truncated, self._get_info()
 
     def _draw_frame(self, wait_val=0):
         self.screen.blit(config.background_blit, (0, 0))

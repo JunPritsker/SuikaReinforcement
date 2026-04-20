@@ -10,17 +10,16 @@ SuikaEnv-v0:
   n_envs: 48                    # 9800X3D can handle 32+ physics threads easily
   buffer_size: 1000000          # 1M transitions (DQN needs a large memory)
   batch_size: 4096              # 5090 needs huge batches to maintain high TFLOPS
-  learning_starts: 200000       # Collect initial data before hitting the GPU
+  learning_starts: 100000       # Collect initial data before hitting the GPU
   train_freq: 4                 # Update every 4 steps
-  gradient_steps: 4            # Do 16 updates per train_freq to keep GPU busy
+  gradient_steps: 16            # Do 16 updates per train_freq to keep GPU busy
   
   # --- Algorithm Hyperparameters ---
-  learning_rate: 'lin_1e-4'     # Linear rate that decays from 1e-4 to 0 during training
+  learning_rate: !!float 5e-5   # Slightly higher to compensate for huge batch size
   gamma: 0.99                   
-  exploration_fraction: 0.25     # Increase exploration for re-training to 25% to discover deeper techniques
-  exploration_initial_eps: 0.05
-  exploration_final_eps: 0.01
-  target_update_interval: 1     # How often to sync the "target" network, use 1 when using tau
+  exploration_fraction: 0.1     # Explore for the first 10% of training
+  exploration_final_eps: 0.05
+  target_update_interval: 1  # How often to sync the "target" network
   tau: 0.005                    # SBX uses Polyak averaging for smoother updates
   
   # --- Brain Capacity ---

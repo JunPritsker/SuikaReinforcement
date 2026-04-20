@@ -6,6 +6,7 @@ SuikaEnv-v0-test-setup:
   # --- Hardware Saturation Settings ---
   n_timesteps: !!float 2e7          # 1 million timesteps for benchmarking
   n_envs: 48                    # 9800X3D can handle 32+ physics threads easily
+  n_eval_episodes: 40           # Run 40 evals instead of the default 5 to get a cleaner signal on learning progress 
   buffer_size: 1000000          # 1M transitions (DQN needs a large memory)
   batch_size: 4096              # 5090 needs huge batches to maintain high TFLOPS
   learning_starts: 100000        # Collect initial data before hitting the GPU
@@ -23,6 +24,8 @@ SuikaEnv-v0-test-setup:
   # --- Brain Capacity ---
   policy_kwargs: "dict(net_arch=[512, 512, 512])"
 
+  callback: 'rl_env.callbacks.GameScoreCallback'
+  
   env_kwargs:
     spatial_features: false
     clustering: false
