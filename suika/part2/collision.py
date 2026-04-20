@@ -22,7 +22,8 @@ def resolve_collision(particle1, particle2, space):
                     impulse = config.physics.impulse * vector / (distance ** 2)
                     p.body.apply_impulse_at_local_point(tuple(impulse))
 
-
+# Both fruits are marked as collided if they're not the same fruit
+# If both fruits ARE the same fruit then they're not marked as collided and are combined instead
 def collide(arbiter, space, data):
     particle1, particle2 = arbiter.shapes
     alive = particle1.alive and particle2.alive

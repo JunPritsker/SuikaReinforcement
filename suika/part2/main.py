@@ -58,6 +58,9 @@ while not game_over:
         if not isinstance(p, Particle):
             continue
         p.draw(screen)
+        # You lose the game when a fruit is above the kill line and is touching another fruit that's different from it
+        # That means you can merge fruit above the kill line without losing as long as after the merge, the highest fruit is
+        # below the kill line
         if p.pos[1] < config.pad.killy and p.has_collided:
             gameover(screen)
             game_over = True
