@@ -1,27 +1,30 @@
-# This config is for continuing the training done on trained models like rl_baseline3_zoo/logs/dqn/SuikaEnv_v0_10
+# A new 20M timestep run after the inital 20M timestep run stored at rl_baseline3_zoo/logs/dqn/SuikaEnv_v0_10
+# Changes include, increase gamma, more exploration, linear learning rate instead of static, higher learning starts
+# This might be too many variables to change at once to evalute but let's see. I also want to try adjusting training_freq to 8 and gradient_steps to 8
+# This is being run AFTER scaling rewards by dividing by 100
 SuikaEnv-v0:
   # algo: dqn
   policy: 'MlpPolicy'
   # --- Hardware Saturation Settings ---
-  n_timesteps: !!float 1e7      # 10 million timesteps for additional training
+  n_timesteps: !!float 2e7      # 20 million timesteps for real training
   n_envs: 48                    # 9800X3D can handle 32+ physics threads easily
   buffer_size: 1000000          # 1M transitions (DQN needs a large memory)
   batch_size: 8192              # 5090 needs huge batches to maintain high TFLOPS
-  learning_starts: 100000       # Collect 200k timesteps before hitting the GPU
-  train_freq: 32                 # Update every 8 steps
-  gradient_steps: 4             # If reward keeps climbing, 16 was too high
+  learning_starts: 100000       # Collect initial data before hitting the GPU
+  train_freq: 32                 # Update every 4 steps
+  gradient_steps: 4            # Do 16 updates per train_freq to keep GPU busy
   
   # --- Algorithm Hyperparameters ---
-  learning_rate: 'lin_1e-4'     # Linear rate that decays from 1e-4 to 0 during training
-  gamma: 0.99                   # This seems to be good for now. The model is setting up huge chains of fruit merges consistently. Maybe higher means it'll live longer?
-  exploration_fraction: 0.20     # Increase exploration for re-training to 25% to discover deeper techniques
-  exploration_initial_eps: 0.15
+  learning_rate: !!float 5e-5   # Slightly higher to compensate for huge batch size
+  gamma: 0.95                   
+  exploration_fraction: 0.2     # Explore for the first 10% of training
+  exploration_initial_eps: 0.5
   exploration_final_eps: 0.05
-  target_update_interval: 1     # How often to sync the "target" network, use 1 when using tau
-  tau: 0.01                    # SBX uses Polyak averaging for smoother updates
-  
+  target_update_interval: 1  # How often to sync the "target" network
+  tau: 0.005                    # SBX uses Polyak averaging for smoother updates
+  n_steps: 20                   # Added after starting this training run -- ignore -- tensorboard-DQN_21
   # --- Brain Capacity ---
-  policy_kwargs: "dict(net_arch=[512, 512, 512])"
+  policy_kwargs: "dict(net_arch=[1024, 1024, 736, 448])"
 
   callback: 'rl_env.callbacks.GameScoreCallback'
 

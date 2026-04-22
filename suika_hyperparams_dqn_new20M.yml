@@ -16,7 +16,7 @@ SuikaEnv-v0:
   
   # --- Algorithm Hyperparameters ---
   learning_rate: !!float 5e-5   # Slightly higher to compensate for huge batch size
-  gamma: 0.99                   
+  gamma: 0.99                
   exploration_fraction: 0.1     # Explore for the first 10% of training
   exploration_final_eps: 0.05
   target_update_interval: 1  # How often to sync the "target" network
