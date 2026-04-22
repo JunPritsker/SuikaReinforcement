@@ -1,7 +1,7 @@
 gymnasium
 numpy
 pygame
-pymunk<7.0.0
+pymunk==6.10.0
 pyyaml
 stable-baselines3[extra]
 shimmy>=2.0.0

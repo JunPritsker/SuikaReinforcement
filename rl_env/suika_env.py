@@ -425,6 +425,8 @@ class SuikaEnv(gym.Env):
 
         # Scale the reward, might need to disable scaling when training an existing model that wasn't trained with scaling
         # step_reward = (final_score - initial_score)/100
+        # step_reward = final_score - initial_score
+        # maybe try scaling up the rewards by 50-100%
         step_reward = final_score - initial_score
 
         # BASE REWARD: Score + small bonus for surviving
@@ -432,7 +434,7 @@ class SuikaEnv(gym.Env):
         self.debug_print(f"Reward: {reward:.6f}")
         # Was 0.25 before scaling. Then tried 0.025. Now trying 0.0025 to match the /100 scaling
         # reward = step_reward + 0.0025
-        reward = step_reward + 0.25
+        reward = step_reward + 0.15
         self.debug_print(f"Step Reward: {step_reward}")
         self.debug_print(f"Base Reward + Step Reward: {reward}")
 
@@ -469,7 +471,7 @@ class SuikaEnv(gym.Env):
                 self.repeat_count = 0
                 self.last_action = action
 
-            if self.repeat_count > 3:
+            if self.repeat_count > 6:
                 # repeat_penalty = 0.01 # adjusted for scaling from 1.0
                 repeat_penalty = 1.0
                 self.debug_print(f"Reward: {reward:.6f}")
