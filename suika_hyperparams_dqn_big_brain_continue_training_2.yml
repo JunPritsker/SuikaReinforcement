@@ -1,0 +1,31 @@
+SuikaEnv-v0:
+  # algo: dqn
+  policy: 'MlpPolicy'
+  # --- Hardware Saturation Settings ---
+  n_timesteps: !!float 5e7
+  n_envs: 48
+  buffer_size: 1000000
+  batch_size: 8192
+  learning_starts: 100000
+  train_freq: 32
+  gradient_steps: 4
+  
+  # --- Algorithm Hyperparameters ---
+  learning_rate: !!float 5e-5
+  gamma: 0.99
+  exploration_fraction: 0.1
+  exploration_initial_eps: 0.10
+  exploration_final_eps: 0.01
+  target_update_interval: 1
+  tau: 0.005
+  n_steps: 20 # Not set during original big_brain run
+
+  # --- Brain Capacity ---
+  policy_kwargs: "dict(net_arch=[1024, 1024, 736, 448])"
+
+  callback: 'rl_env.callbacks.GameScoreCallback'
+
+  env_kwargs:
+    spatial_features: false
+    clustering: false
+    # debug: true
