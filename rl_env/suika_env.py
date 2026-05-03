@@ -28,8 +28,19 @@ MAX_RADIUS = 150.0
 class SuikaEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": config.screen.fps}
     
-
     def __init__(self, render_mode=None, action_type="discrete", discrete_bins=448, max_fruits=50, spatial_features=False, debug=False, clustering=False):
+        """
+        Here I explain the default initialization parameters for the gymnasium environment
+        render_mode = None - I do not want to render while training because it's a massive slow down
+        action_type = "discrete" - Technically the game implementation only accepts integer value x-coordinates within the playable space that's 448 units wide so I use a discrete action type/space
+        discrete_bins = 448 - The aformentioned size of the discrete action space to configure
+        max_fruits = 50 - The observation space (game board representation) needs to be a fixed size/shape through a training run. However, the number of fruits on the board changes over time. 
+          Each fruit is represented by 4 values in the observation space (discussed below) so there are always at least 4*max_fruits indexes in the observation space array. These indexes are zeroes
+          until a fruit needs to be represented in those indexes. It's highly unlike for there to ever be 50 or more fruit on the board so this is a safe value to pick
+        spatial_features = False - This turns on calculations for spatial features and adds them to the observation space. Defaulted to False because they can be computationally expensive which slows down training
+        debug = False - My flag for toggling debug prints
+        cluster = False - A separate flag just for clustering since it's the most computationally expensive feature to calculate (determined by profiling the program) and has a signficant training speed impact
+        """
         self.render_mode = render_mode
         self.action_type = action_type
         self.discrete_bins = discrete_bins
@@ -54,6 +65,7 @@ class SuikaEnv(gym.Env):
         self.screen_width = config.screen.width
         self.screen_height = config.screen.height
         
+        # Human render mode is for rendering the game on screen
         if self.render_mode == "human":
             self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
             pygame.display.set_caption("Suika RL Environment")
@@ -62,12 +74,15 @@ class SuikaEnv(gym.Env):
 
         self.clock = pygame.time.Clock()
 
+        # I always use discrete for reasons above. This sets gymnasium's action_space - the range of action values the model should pick from when predict()-ing the optimal action given a state
         if self.action_type == "discrete":
             self.action_space = spaces.Discrete(self.discrete_bins)
         else:
             self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
 
         obs_len = 0
+        # With spatial features and/or clustering enabled, I have to adjust the observation shape accordingly so that 
+        # gymnasium receives the expected observation space shape and doesn't crash
         if self.spatial_features and self.clustering:
             # changed from 9 + to 14 + to adjust for spatial features
             obs_len = 14 + (self.max_fruits * 4)
@@ -91,6 +106,7 @@ class SuikaEnv(gym.Env):
         self.game_over_threshold = 3.0
     
     def render(self):
+        """This was a workaround to get rendering to work with SBX (Stable-Baselines3 with JAX support) when evaluating a trained model"""
         # If you are already rendering in step(), this can be empty
         # or you can move your Pygame/drawing logic here.
         if self.render_mode is None:
@@ -104,17 +120,25 @@ class SuikaEnv(gym.Env):
         return val / max_val
 
     def _get_obs(self):
+        """
+        This returns the current observation_space of the game. The output of this function is what DQN takes in as the `state` which it uses to provide
+        the most optimal action to take using the Q-value function.
+        """
         obs = np.zeros(self.observation_space.shape, dtype=np.float32)
         
         W = float(self.screen_width)
         H = float(self.screen_height)
         
+        # The current fruit ID available to be dropped and its size. Normalized between 0-1
         obs[0] = self.cloud.curr.n / MAX_TYPE
         obs[1] = self.cloud.curr.radius / MAX_RADIUS
         
+        # The next fruit ID available to be dropped and its size. Normalized between 0-1
         obs[2] = self.cloud.next.n / MAX_TYPE
         obs[3] = self.cloud.next.radius / MAX_RADIUS
         
+        # The left, right, and bottom bounds of the play are as well as the height at which the game ends if fruit collide at or above that height
+        # All normalized to be between 0-1
         obs[4] = config.pad.left / W
         obs[5] = config.pad.right / W
         obs[6] = config.pad.bot / H 
@@ -124,6 +148,8 @@ class SuikaEnv(gym.Env):
         fruits = []
         min_y = H 
         
+        # Calculate the highest position of a fruit on the board. I know the code says min. That's because the game is programmed
+        # so that the top of the visual screen is height 0 and the y position increases as look lower at the screen
         for p in self.space.shapes:
             if isinstance(p, Particle) and p.alive:
                 fruits.append(p)
@@ -214,7 +240,7 @@ class SuikaEnv(gym.Env):
         # CLEARANCE RATIO - available vertical space at top
         clearance_ratio = self._calculate_clearance_ratio(min_y)
 
-        # 5. FRUIT SPREAD - penalize overly clustered center
+        # FRUIT SPREAD - penalize overly clustered center
         avg_fruit_spread = self._calculate_spread(fruits, W)
 
         return {
@@ -234,7 +260,7 @@ class SuikaEnv(gym.Env):
         clustering_reward = 0.0
         count = 0
 
-        # TODO: might be able to optimize this calculation?
+        # TODO: might be able to optimize this calculation? Pretty compute intensize
         for i, f1 in enumerate(fruits):
             # Find other fruits of same or similar type (within 1 level)
             for f2 in fruits[i+1:]:
@@ -267,6 +293,7 @@ class SuikaEnv(gym.Env):
         return edge_reward / max(1, len(fruits))
 
     def _calculate_clearance_ratio(self, min_y):
+        """Ratio of distance of highest fruit to the screen top vs the distance of the kill zone to the screen top. Normalized/clipped between 0-1"""
         return np.clip((min_y - config.pad.top) / (config.pad.killy - config.pad.top), 0.0, 1.0)
 
     def _calculate_spread(self, fruits, W):
@@ -280,8 +307,16 @@ class SuikaEnv(gym.Env):
         spread_ratio = std_x / (W / 2) if W > 0 else 0  # Normalized spread
         return min(1.0, spread_ratio)  # Capped at 1.0
 
-    # Used to make sure all the fruit stop moving before making the next move
     def _is_simulation_at_rest(self, space, linear_threshold=0.1, angular_threshold=0.01):
+        """
+        Used to make sure all the fruit stop moving before letting the model make the next move. 
+        This avoids issues with the previous implementation where the model would pick actions on fixed time intervals
+        This would result in the model taking actions while fruit were still moving significantly, meaning the model
+        was making decisions on a bad state because the observation space doesn't contain any information about the linear/angular velocity
+        of fruits (only position, ID, and size) so the model might aim to hit a specific fruit that might not be there
+        once the dropped fruit falls. This eliminates the need for the model to embed/learn too much physics in its model weights
+        and makes each state -> action -> state' transition more consistent for training.
+        """
         for body in space.bodies:
             if body.body_type != pymunk.Body.DYNAMIC:
                 continue
@@ -300,6 +335,7 @@ class SuikaEnv(gym.Env):
             print(f"DEBUG: {log_message}")
 
     def reset(self, seed=None, options=None):
+        """Resets the game state for a new training game"""
         super().reset(seed=seed)
         
         self.last_action = None
@@ -317,6 +353,8 @@ class SuikaEnv(gym.Env):
 
         self.cloud = Cloud()
         
+        # Randomly places a few fruit on the board instead of starting with an empty board
+        # I kept this on because there's nothing for the model to learn from an empty board in my opinion
         do_random_start = True
         if options and "random_start" in options:
             do_random_start = options["random_start"]
@@ -347,6 +385,14 @@ class SuikaEnv(gym.Env):
         return self._get_obs(), self._get_info()
 
     def step(self, action):
+        """
+        The most important function. It:
+        1. Performs an action (fruit drop @location) chosen by the model for the current game state
+        2. Simulates the fruit drop and collisions/merges until all fruits are at rest
+        3. Calculates the reward to give the model for this action
+        4. Calculates the new game state (observation_space) including any custom features and returns it to the training framework
+            Also tells the training framework if the game is over
+        """
         if self.game_over:
             return self._get_obs(), 0, True, False, self._get_info()
 
@@ -373,6 +419,8 @@ class SuikaEnv(gym.Env):
         reward = 0
         initial_score = self.handler.data["score"]
 
+        # To prevent the game simulating too far ahead, set a maximum step limit.
+        # This loop steps the game 1 frame at a time until all the fruit stop moving
         i = 0
         while i < max_steps:
             if self.render_mode == "human":
@@ -489,6 +537,7 @@ class SuikaEnv(gym.Env):
 
         truncated = False
 
+        # Leaving this for posterity: was experimenting with calculating the height severity only without the rest of the spatial featuress
         # Don't want to _get_obs() twice but want to use obs values for reward penalty so grabbing it here
         # obs = self._get_obs()
 
